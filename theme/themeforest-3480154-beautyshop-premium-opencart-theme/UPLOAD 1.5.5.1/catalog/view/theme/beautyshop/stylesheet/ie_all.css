@@ -1,0 +1,11 @@
+#currency {
+    margin-top:-22px;
+    position: relative;
+}
+#header #search input {
+    padding-top:7px;
+    height:20px;
+}
+.mini-ads a:first-child + * + *, .mini-ads > img:first-child + * + * {
+    margin-right: 0;
+}

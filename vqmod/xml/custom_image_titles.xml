@@ -1,0 +1,832 @@
+<modification>
+
+    <id>Add custom titles and alternative messages for all product and category images together with image sort order</id>
+    <version>2.5.0</version>
+    <vqmver>2.3.2</vqmver>
+    <author>bull5-i</author>
+
+    <file name="admin/controller/catalog/product.php">
+        <operation info="Add CIT custom texts and settings">
+            <search position="after"><![CDATA[
+            protected function getForm() {
+            ]]></search>
+            <add><![CDATA[
+        if ($this->config->get('custom_image_titles_status')) {
+            $this->document->addStyle('view/stylesheet/cit_style.css');
+        }
+
+        $this->data['entry_image_alt'] = $this->language->get('entry_image_alt');
+        $this->data['entry_image_title'] = $this->language->get('entry_image_title');
+        $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+        $this->data['cit_show_alt_text'] = $this->config->get('cit_show_alt_text');
+        $this->data['cit_show_language_in_tab'] = $this->config->get('cit_show_language_in_tab');
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/controller/catalog/product.php">
+        <operation info="Include custom image titles &amp; alt messages for additional images">
+            <search position="after"><![CDATA[
+            $this->data['product_images'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                'descriptions'=> isset($product_image['descriptions']) ? $product_image['descriptions'] : array(),
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/language/english/catalog/product.php">
+        <operation info="Add translations for CIT custom texts">
+            <search position="after"><![CDATA[
+			$_['entry_image']
+            ]]></search>
+            <add><![CDATA[
+$_['entry_image_alt']        = 'Alternative Text:';
+$_['entry_image_title']      = 'Image Title:';
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/catalog/product.php">
+        <operation info="Include the custom alt &amp; title messages">
+            <search position="after"><![CDATA[
+			$product_description_data[$result['language_id']] = array(
+			]]></search>
+            <add><![CDATA[
+                'alt_text'         => (isset($result['alt_text'])) ? $result['alt_text'] : "",
+                'title_text'       => (isset($result['title_text'])) ? $result['title_text'] : "",
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/catalog/category.php">
+        <operation error="log" info="Add admin language defaults">
+            <search position="before"><![CDATA[
+            foreach ($data['category_description'] as $language_id => $value)
+            ]]></search>
+            <add><![CDATA[
+        if ($this->config->get('custom_image_titles_status') && $this->config->get('cit_use_admin_language_value')) {
+            $admin_lang_alt = isset($data['category_description'][$this->config->get('config_language_id')]['alt_text']) ? $data['category_description'][$this->config->get('config_language_id')]['alt_text'] : '';
+            $admin_lang_title = isset($data['category_description'][$this->config->get('config_language_id')]['title_text']) ? $data['category_description'][$this->config->get('config_language_id')]['title_text'] : '';
+        }
+            ]]></add>
+        </operation>
+        <operation info="Insert custom alt &amp; title messages to database"><!-- Partial match -->
+            <search position="after"><![CDATA[
+            $this->db->query("INSERT INTO " . DB_PREFIX . "category_description SET category_id
+            ]]></search>
+            <add><![CDATA[
+            if ($this->config->get('custom_image_titles_status')) {
+                if ($this->config->get('cit_use_admin_language_value') && isset($value['alt_text']) && $value['alt_text'] == '') {
+                    $value['alt_text'] = isset($admin_lang_alt) ? $admin_lang_alt : '';
+                }
+                if ($this->config->get('cit_use_admin_language_value') && isset($value['title_text']) && $value['title_text'] == '') {
+                    $value['title_text'] = isset($admin_lang_title) ? $admin_lang_title : '';
+                }
+                $this->db->query("UPDATE " . DB_PREFIX . "category_description SET alt_text = '" . $this->db->escape($value['alt_text']) . "', title_text = '" . $this->db->escape($value['title_text']) . "' WHERE category_id = '" . (int)$category_id . "' AND language_id = '" . (int)$language_id . "'");
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/catalog/product.php">
+        <operation error="log" info="Add admin language defaults">
+            <search position="before"><![CDATA[
+            foreach ($data['product_description'] as $language_id => $value)
+            ]]></search>
+            <add><![CDATA[
+        if ($this->config->get('custom_image_titles_status') && $this->config->get('cit_use_admin_language_value')) {
+            $admin_lang_alt = isset($data['product_description'][$this->config->get('config_language_id')]['alt_text']) ? $data['product_description'][$this->config->get('config_language_id')]['alt_text'] : '';
+            $admin_lang_title = isset($data['product_description'][$this->config->get('config_language_id')]['title_text']) ? $data['product_description'][$this->config->get('config_language_id')]['title_text'] : '';
+        }
+            ]]></add>
+        </operation>
+        <operation info="Insert custom alt &amp; title messages to database"><!-- Partial match -->
+            <search position="after"><![CDATA[
+            $this->db->query("INSERT INTO " . DB_PREFIX . "product_description SET product_id
+            ]]></search>
+            <add><![CDATA[
+            if ($this->config->get('custom_image_titles_status')) {
+                if ($this->config->get('cit_use_admin_language_value') && isset($value['alt_text']) && $value['alt_text'] == '') {
+                    $value['alt_text'] = isset($admin_lang_alt) ? $admin_lang_alt : '';
+                }
+                if ($this->config->get('cit_use_admin_language_value') && isset($value['title_text']) && $value['title_text'] == '') {
+                    $value['title_text'] = isset($admin_lang_title) ? $admin_lang_title : '';
+                }
+                $this->db->query("UPDATE " . DB_PREFIX . "product_description SET alt_text = '" . $this->db->escape($value['alt_text']) . "', title_text = '" . $this->db->escape($value['title_text']) . "' WHERE product_id = '" . (int)$product_id . "' AND language_id = '" . (int)$language_id . "'");
+            }
+            ]]></add>
+        </operation>
+        <operation info="Insert custom alt &amp; title messages for the additional images to database"><!-- Partial match -->
+            <search position="after"><![CDATA[
+            $this->db->query("INSERT INTO " . DB_PREFIX . "product_image SET product_id
+            ]]></search>
+            <add><![CDATA[
+                if ($this->config->get('custom_image_titles_status')) {
+                    $product_image_id = $this->db->getLastId();
+
+                    if ($this->config->get('cit_use_admin_language_value')) {
+                        $admin_lang_alt = isset($product_image['language'][$this->config->get('config_language_id')]['alt_text']) ? $product_image['language'][$this->config->get('config_language_id')]['alt_text'] : '';
+                        $admin_lang_title = isset($product_image['language'][$this->config->get('config_language_id')]['title_text']) ? $product_image['language'][$this->config->get('config_language_id')]['title_text'] : '';
+                    }
+
+                    foreach ($product_image['descriptions'] as $language_id => $value) {
+                        if ($this->config->get('cit_use_admin_language_value') && isset($value['alt_text']) && $value['alt_text'] == '') {
+                            $value['alt_text'] = isset($admin_lang_alt) ? $admin_lang_alt : '';
+                        }
+                        if ($this->config->get('cit_use_admin_language_value') && isset($value['title_text']) && $value['title_text'] == '') {
+                            $value['title_text'] = isset($admin_lang_title) ? $admin_lang_title : '';
+                        }
+
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_image_description SET product_image_id = '" . (int)$product_image_id . "', language_id = '" . (int)$language_id . "', product_id = '" . (int)$product_id . "', alt_text = '" . $this->db->escape($value['alt_text']) . "', title_text = '" . $this->db->escape($value['title_text']) . "'");
+                    }
+                }
+            ]]></add>
+        </operation>
+        <operation info="Delete product image alt &amp; title messages for current product">
+            <search position="after" regex="true"><![CDATA[~\$this->db->query\("DELETE FROM " \. DB_PREFIX \. "product_image WHERE product_id = '" \. \(int\)\s?\$product_id \. "'"\);~]]></search>
+            <add><![CDATA[
+        if ($this->config->get('custom_image_titles_status')) {
+            $this->db->query("DELETE FROM " . DB_PREFIX . "product_image_description WHERE product_id = '" . (int)$product_id . "'");
+        }
+            ]]></add>
+        </operation>
+        <operation info="Get product additional images with alt &amp; title messages and in sorted order">
+            <search position="replace"><![CDATA[
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image WHERE product_id = '" . (int)$product_id . "'");
+            ]]></search>
+            <add><![CDATA[
+        $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image WHERE product_id = '" . (int)$product_id . "' ORDER BY sort_order ASC");
+
+        if ($this->config->get('custom_image_titles_status')) {
+            foreach ($query->rows as $k => $v) {
+                $query->rows[$k]['descriptions'] = $this->getProductImageDescriptions($v['product_image_id']);
+            }
+        }
+            ]]></add>
+        </operation>
+        <operation info="Custom function to get the additional product image alt &amp; title messages">
+            <search position="before"><![CDATA[
+            public function getProductDiscounts($product_id) {
+            ]]></search>
+            <add><![CDATA[
+    public function getProductImageDescriptions($product_image_id) {
+        $product_image_description_data = array();
+
+        $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image_description WHERE product_image_id = '" . (int)$product_image_id . "'");
+
+        foreach ($query->rows as $result) {
+            $product_image_description_data[$result['language_id']] = array(
+                'alt_text'      => $result['alt_text'],
+                'title_text'    => $result['title_text']
+            );
+        }
+
+        return $product_image_description_data;
+    }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/model/localisation/language.php">
+        <operation error="log" info="Prefill alt &amp; title messages for additional product images with admin language value">
+            <search position="before" offset="1"><![CDATA[
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_description WHERE language_id
+            ]]></search>
+            <add><![CDATA[
+        // CIT
+        if ($this->config->get('cit_installed')) {
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image_description WHERE language_id = '" . (int)$this->config->get('config_language_id') . "'");
+
+            foreach ($query->rows as $pid) {
+                $this->db->query("INSERT INTO " . DB_PREFIX . "product_image_description SET product_id = '" . (int)$pid['product_id'] . "', language_id = '" . (int)$language_id . "', product_image_id = '" . (int)$pid['product_image_id'] . "', alt_text= '" . $this->db->escape($pid['alt_text']) . "', title_text = '" . $this->db->escape($pid['title_text']) . "'");
+            }
+        }
+            ]]></add>
+        </operation>
+        <operation error="log" info="Prefill category image alt &amp; title messages with admin language value"><!-- Partial match -->
+            <search position="after"><![CDATA[
+            $this->db->query("INSERT INTO " . DB_PREFIX . "category_description SET category_id
+            ]]></search>
+            <add><![CDATA[
+            if ($this->config->get('cit_installed')) {
+                $this->db->query("UPDATE " . DB_PREFIX . "category_description SET alt_text = '" . $this->db->escape($category['alt_text']) . "', title_text = '" . $this->db->escape($category['title_text']) . "' WHERE category_id = '" . (int)$category['category_id'] . "' AND language_id = '" . (int)$language_id . "'");
+            }
+            ]]></add>
+        </operation>
+        <operation error="log" info="Prefill main product image alt &amp; title messages with admin language value"><!-- Partial match -->
+            <search position="after"><![CDATA[
+            $this->db->query("INSERT INTO " . DB_PREFIX . "product_description SET product_id
+            ]]></search>
+            <add><![CDATA[
+            if ($this->config->get('cit_installed')) {
+                $this->db->query("UPDATE " . DB_PREFIX . "product_description SET alt_text = '" . $this->db->escape($product['alt_text']) . "', title_text = '" . $this->db->escape($product['title_text']) . "' WHERE product_id = '" . (int)$product['product_id'] . "' AND language_id = '" . (int)$language_id . "'");
+            }
+            ]]></add>
+        </operation>
+        <operation error="log" info="Delete alt &amp; title messages for additional product images">
+            <search position="after"><![CDATA[
+            $this->db->query("DELETE FROM " . DB_PREFIX . "product_description WHERE language_id = '" . (int)$language_id . "'");
+            ]]></search>
+            <add><![CDATA[
+        if ($this->config->get('cit_installed')) {
+            $this->db->query("DELETE FROM " . DB_PREFIX . "product_image_description WHERE language_id = '" . (int)$language_id . "'");
+        }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/catalog/category_form.tpl">
+        <operation info="Add category image alt &amp; title message inputs">
+            <search position="replace" offset="4"><![CDATA[
+            <td><?php echo $entry_image; ?></td>
+            ]]></search>
+            <add><![CDATA[
+              <td><?php echo $entry_image; ?></td>
+              <td><?php if (isset($cit_status) && $cit_status) { ?>
+                <table>
+                  <tr>
+                    <td>
+                      <div class="image"><img src="<?php echo $thumb; ?>" alt="" id="thumb" />
+                      <input type="hidden" name="image" value="<?php echo $image; ?>" id="image" />
+                      <br /><a onclick="image_upload('image', 'thumb');"><?php echo $text_browse; ?></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a onclick="$('#thumb').attr('src', '<?php echo $no_image; ?>'); $('#image').attr('value', '');"><?php echo $text_clear; ?></a></div>
+                    </td>
+                    <td class="lang_info">
+                      <?php if ($cit_show_language_in_tab) { ?>
+                      <div id="main_img_lang" class="micro_htabs">
+                        <?php foreach ($languages as $language) { ?>
+                        <a href="#main_img_lang<?php echo $language['language_id']; ?>"><img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></a>
+                        <?php } ?>
+                      </div>
+                      <?php foreach ($languages as $language) { ?>
+                      <div id="main_img_lang<?php echo $language['language_id']; ?>">
+                        <table class="micro_form">
+                          <?php if ($cit_show_alt_text) { ?>
+                          <tr>
+                            <td><?php echo $entry_image_alt; ?></td>
+                            <td><input type="text" name="category_description[<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['alt_text'] : ''; ?>" /></td>
+                          </tr>
+                          <?php } ?>
+                          <tr>
+                            <td><?php echo $entry_image_title; ?></td>
+                            <td>
+                              <input type="text" name="category_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['title_text'] : ''; ?>" />
+                              <?php if (!$cit_show_alt_text) { ?>
+                              <input type="hidden" name="category_description[<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['alt_text'] : ''; ?>" />
+                              <?php } ?>
+                            </td>
+                          </tr>
+                        </table>
+                      </div>
+                      <?php } ?>
+                      <?php } else { ?>
+                      <?php if ($cit_show_alt_text) { ?>
+                      <table class="nano_form">
+                      <?php foreach ($languages as $language) { ?>
+                        <tr>
+                          <td><?php echo $entry_image_alt; ?></td>
+                          <td><input type="text" name="category_description[<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['alt_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                        </tr>
+                        <tr>
+                          <td><?php echo $entry_image_title; ?></td>
+                          <td><input type="text" name="category_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                        </tr>
+                      <?php } ?>
+                      </table>
+                      <?php } else { ?>
+                      <table class="pico_form">
+                        <tr>
+                          <td><?php echo $entry_image_title; ?></td>
+                        </tr>
+                        <?php foreach ($languages as $language) { ?>
+                        <tr>
+                          <td>
+                            <input type="text" name="category_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" />
+                            <input type="hidden" name="category_description[<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($category_description[$language['language_id']]) ? $category_description[$language['language_id']]['alt_text'] : ''; ?>" />
+                          </td>
+                        </tr>
+                        <?php } ?>
+                      </table>
+                      <?php } ?>
+                      <?php } ?>
+                    </td>
+                  </tr>
+                </table>
+              <?php } else { ?>
+                <div class="image"><img src="<?php echo $thumb; ?>" alt="" id="thumb" />
+                  <input type="hidden" name="image" value="<?php echo $image; ?>" id="image" />
+                  <br /><a onclick="image_upload('image', 'thumb');"><?php echo $text_browse; ?></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a onclick="$('#thumb').attr('src', '<?php echo $no_image; ?>'); $('#image').attr('value', '');"><?php echo $text_clear; ?></a></div>
+              <?php } ?>
+              </td>
+            ]]></add>
+        </operation>
+        <operation info="Initialize the language tabs if image alt &amp; title messages are tabbed">
+            <search position="after"><![CDATA[
+            $('#languages a').tabs();
+            ]]></search>
+            <add><![CDATA[
+<?php if (isset($cit_status) && $cit_status && $cit_show_language_in_tab) { ?>
+$('#main_img_lang a').tabs();
+<?php } ?>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="admin/view/template/catalog/product_form.tpl">
+        <operation info="Add main product image alt &amp; title messages inputs">
+            <search position="replace" offset="3"><![CDATA[
+            <td><?php echo $entry_image; ?></td>
+            ]]></search>
+            <add><![CDATA[
+              <td><?php echo $entry_image; ?></td>
+              <td><?php if (isset($cit_status) && $cit_status) { ?>
+                <table>
+                  <tr>
+                    <td>
+                      <div class="image"><img src="<?php echo $thumb; ?>" alt="" id="thumb" /><br />
+                      <input type="hidden" name="image" value="<?php echo $image; ?>" id="image" />
+                      <a onclick="image_upload('image', 'thumb');"><?php echo $text_browse; ?></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a onclick="$('#thumb').attr('src', '<?php echo $no_image; ?>'); $('#image').attr('value', '');"><?php echo $text_clear; ?></a></div>
+                    </td>
+                    <td class="lang_info">
+                      <?php if ($cit_show_language_in_tab) { ?>
+                      <div id="main_img_lang" class="micro_htabs">
+                        <?php foreach ($languages as $language) { ?>
+                        <a href="#main_img_lang<?php echo $language['language_id']; ?>"><img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></a>
+                        <?php } ?>
+                      </div>
+                      <?php foreach ($languages as $language) { ?>
+                      <div id="main_img_lang<?php echo $language['language_id']; ?>">
+                        <table class="micro_form">
+                          <?php if ($cit_show_alt_text) { ?>
+                          <tr>
+                            <td><?php echo $entry_image_alt; ?></td>
+                            <td><input type="text" name="product_description[<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['alt_text'] : ''; ?>" /></td>
+                          </tr>
+                          <?php } ?>
+                          <tr>
+                            <td><?php echo $entry_image_title; ?></td>
+                            <td>
+                              <input type="text" name="product_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['title_text'] : ''; ?>" />
+                              <?php if (!$cit_show_alt_text) { ?>
+                              <input type="hidden" name="product_description[<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['alt_text'] : ''; ?>" />
+                              <?php } ?>
+                            </td>
+                          </tr>
+                        </table>
+                      </div>
+                      <?php } ?>
+                      <?php } else { ?>
+                      <?php if ($cit_show_alt_text) { ?>
+                      <table class="nano_form">
+                      <?php foreach ($languages as $language) { ?>
+                        <tr>
+                          <td><?php echo $entry_image_alt; ?></td>
+                          <td><input type="text" name="product_description[<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['alt_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                        </tr>
+                        <tr>
+                          <td><?php echo $entry_image_title; ?></td>
+                          <td><input type="text" name="product_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                        </tr>
+                      <?php } ?>
+                      </table>
+                      <?php } else { ?>
+                      <table class="pico_form">
+                        <tr>
+                          <td><?php echo $entry_image_title; ?></td>
+                        </tr>
+                        <?php foreach ($languages as $language) { ?>
+                        <tr>
+                          <td>
+                            <input type="text" name="product_description[<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" />
+                            <input type="hidden" name="product_description[<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($product_description[$language['language_id']]) ? $product_description[$language['language_id']]['alt_text'] : ''; ?>" />
+                          </td>
+                        </tr>
+                        <?php } ?>
+                      </table>
+                      <?php } ?>
+                      <?php } ?>
+                    </td>
+                  </tr>
+                </table>
+              <?php } else { ?>
+                <div class="image"><img src="<?php echo $thumb; ?>" alt="" id="thumb" /><br />
+                  <input type="hidden" name="image" value="<?php echo $image; ?>" id="image" />
+                  <a onclick="image_upload('image', 'thumb');"><?php echo $text_browse; ?></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a onclick="$('#thumb').attr('src', '<?php echo $no_image; ?>'); $('#image').attr('value', '');"><?php echo $text_clear; ?></a></div>
+              <?php } ?>
+              </td>
+            ]]></add>
+        </operation>
+        <operation info="Add additional images table header for alt &amp; title messages column">
+            <search position="after"><![CDATA[
+            <td class="left"><?php echo $entry_image; ?></td>
+            ]]></search>
+            <add><![CDATA[
+                <?php if (isset($cit_status) && $cit_status) { ?>
+                <td class="left"><?php echo $entry_description; ?></td>
+                <?php } ?>
+            ]]></add>
+        </operation>
+        <operation info="Add additional images alt &amp; title message inputs">
+            <search position="before"><![CDATA[
+            <td class="right"><input type="text" name="product_image[<?php echo $image_row; ?>][sort_order]" value="<?php echo $product_image['sort_order']; ?>" size="2" /></td>
+            ]]></search>
+            <add><![CDATA[
+                <?php if (isset($cit_status) && $cit_status) { ?>
+                <td>
+                  <table class="image_data">
+                    <tr>
+                      <td>
+                        <?php if ($cit_show_language_in_tab) { ?>
+                        <div id="img_lang<?php echo $image_row; ?>" class="micro_htabs">
+                          <?php foreach ($languages as $language) { ?>
+                          <a href="#img_lang<?php echo $image_row . $language['language_id']; ?>"><img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></a>
+                          <?php } ?>
+                        </div>
+                        <?php foreach ($languages as $language) { ?>
+                        <div id="img_lang<?php echo $image_row . $language['language_id']; ?>">
+                          <table class="micro_form">
+                            <?php if ($cit_show_alt_text) { ?>
+                            <tr>
+                              <td><?php echo $entry_image_alt; ?></td>
+                              <td><input type="text" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['alt_text'] : ''; ?>" /></td>
+                            </tr>
+                            <?php } ?>
+                            <tr>
+                              <td><?php echo $entry_image_title; ?></td>
+                              <td>
+                                <input type="text" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['title_text'] : ''; ?>" />
+                                <?php if (!$cit_show_alt_text) { ?>
+                                <input type="hidden" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['alt_text'] : ''; ?>" />
+                                <?php } ?>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                        <?php } ?>
+                        <?php } else { ?>
+                        <?php if ($cit_show_alt_text) { ?>
+                        <table class="nano_form">
+                        <?php foreach ($languages as $language) { ?>
+                          <tr>
+                            <td><?php echo $entry_image_alt; ?></td>
+                            <td><input type="text" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][alt_text]" size="60" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['alt_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                          </tr>
+                          <tr>
+                            <td><?php echo $entry_image_title; ?></td>
+                            <td><input type="text" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>
+                          </tr>
+                        <?php } ?>
+                        </table>
+                        <?php } else { ?>
+                        <table class="pico_form">
+                          <tr>
+                            <td><?php echo $entry_image_title; ?></td>
+                          </tr>
+                          <?php foreach ($languages as $language) { ?>
+                          <tr>
+                            <td>
+                              <input type="text" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['title_text'] : ''; ?>" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" />
+                              <input type="hidden" name="product_image[<?php echo $image_row; ?>][descriptions][<?php echo $language['language_id']; ?>][alt_text]" value="<?php echo isset($product_image['descriptions'][$language['language_id']]) ? $product_image['descriptions'][$language['language_id']]['alt_text'] : ''; ?>" />
+                            </td>
+                          </tr>
+                          <?php } ?>
+                        </table>
+                        <?php } ?>
+                        <?php } ?>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <?php } ?>
+            ]]></add>
+        </operation>
+        <operation info="Fix the last row">
+            <search position="replace" offset="7"><![CDATA[
+            <?php $image_row++; ?>
+            ]]></search>
+            <add><![CDATA[
+            <?php $image_row++; ?>
+            <?php } ?>
+            <tfoot>
+              <tr>
+                <?php if (isset($cit_status) && $cit_status) { ?>
+                <td colspan="3"></td>
+                <?php } else { ?>
+                <td colspan="2"></td>
+                <?php } ?>
+                <td class="left"><a onclick="addImage();" class="button"><?php echo $button_add_image; ?></a></td>
+              </tr>
+            </tfoot>
+            ]]></add>
+        </operation>
+        <operation info="Update the addImage function for CIT">
+            <search position="replace"><![CDATA[
+            function addImage() {
+            ]]></search>
+            <add><![CDATA[
+<?php if (isset($cit_status) && $cit_status) { ?>
+function addImage() {
+    html  = '<tbody id="image-row' + image_row + '">';
+    html += '  <tr>';
+    html += '    <td class="left"><div class="image"><img src="<?php echo $no_image; ?>" alt="" id="thumb' + image_row + '" /><input type="hidden" name="product_image[' + image_row + '][image]" value="" id="image' + image_row + '" /><br /><a onclick="image_upload(\'image' + image_row + '\', \'thumb' + image_row + '\');"><?php echo $text_browse; ?></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a onclick="$(\'#thumb' + image_row + '\').attr(\'src\', \'<?php echo $no_image; ?>\'); $(\'#image' + image_row + '\').attr(\'value\', \'\');"><?php echo $text_clear; ?></a></div></td>';
+    html += '    <td>';
+    html += '      <table class="image_data">';
+    html += '        <tr>';
+    html += '          <td>';
+    <?php if ($cit_show_language_in_tab) { ?>
+    html += '            <div id="img_lang' + image_row + '" class="micro_htabs">';
+    <?php foreach ($languages as $language) { ?>
+    html += '              <a href="#img_lang' + image_row + '<?php echo $language['language_id']; ?>"><img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></a>';
+    <?php } ?>
+    html += '            </div>';
+    <?php foreach ($languages as $language) { ?>
+    html += '            <div id="img_lang' + image_row + '<?php echo $language['language_id']; ?>">';
+    html += '              <table class="micro_form">';
+    <?php if ($cit_show_alt_text) { ?>
+    html += '                <tr>';
+    html += '                  <td><?php echo $entry_image_alt; ?></td>';
+    html += '                  <td><input type="text" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][alt_text]" size="60" value="" /></td>';
+    html += '                </tr>';
+    <?php } ?>
+    html += '                <tr>';
+    html += '                  <td><?php echo $entry_image_title; ?></td>';
+    html += '                  <td>';
+    html += '                    <input type="text" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="" />';
+    <?php if (!$cit_show_alt_text) { ?>
+    html += '                    <input type="hidden" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][alt_text]" value="" />';
+    <?php } ?>
+    html += '                  </td>';
+    html += '                </tr>';
+    html += '              </table>';
+    html += '            </div>';
+    <?php } ?>
+    <?php } else { ?>
+    <?php if ($cit_show_alt_text) { ?>
+    html += '            <table class="nano_form">';
+    <?php foreach ($languages as $language) { ?>
+    html += '              <tr>';
+    html += '                <td><?php echo $entry_image_alt; ?></td>';
+    html += '                <td><input type="text" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][alt_text]" size="60" value="" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>';
+    html += '              </tr>';
+    html += '              <tr>';
+    html += '                <td><?php echo $entry_image_title; ?></td>';
+    html += '                <td><input type="text" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" /></td>';
+    html += '              </tr>';
+    <?php } ?>
+    html += '            </table>';
+    <?php } else { ?>
+    html += '            <table class="pico_form">';
+    html += '              <tr>';
+    html += '                <td><?php echo $entry_image_title; ?></td>';
+    html += '              </tr>';
+    <?php foreach ($languages as $language) { ?>
+    html += '              <tr>';
+    html += '                <td>';
+    html += '                  <input type="text" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][title_text]" size="60" value="" />&nbsp;<img src="view/image/flags/<?php echo $language['image']; ?>" title="<?php echo $language['name']; ?>" />';
+    html += '                  <input type="hidden" name="product_image[' + image_row + '][descriptions][<?php echo $language['language_id']; ?>][alt_text]" value="" />';
+    html += '                </td>';
+    html += '              </tr>';
+    <?php } ?>
+    html += '            </table>';
+    <?php } ?>
+    <?php } ?>
+    html += '          </td>';
+    html += '        </tr>';
+    html += '      </table>';
+    html += '    </td>';
+    html += '    <td class="right"><input type="text" name="product_image[' + image_row + '][sort_order]" value="" size="2" /></td>';
+    html += '    <td class="left"><a onclick="$(\'#image-row' + image_row  + '\').remove();" class="button"><?php echo $button_remove; ?></a></td>';
+    html += '  </tr>';
+    html += '</tbody>';
+
+    $('#images tfoot').before(html);
+
+    <?php if ($cit_show_language_in_tab) { ?>
+    $('#img_lang' + image_row + ' a').tabs();
+    <?php } ?>
+
+    image_row++;
+}
+
+function __addImage__() {
+<?php } else { ?>
+function addImage() {
+<?php } ?>
+            ]]></add>
+        </operation>
+        <operation info="Initialize the language tabs if image alt &amp; title messages are tabbed">
+            <search position="after"><![CDATA[
+            $('#languages a').tabs();
+            ]]></search>
+            <add><![CDATA[
+<?php if (isset($cit_status) && $cit_status && $cit_show_language_in_tab) { ?>
+$('#main_img_lang a').tabs();
+<?php
+    for ($i = 0; $i < $image_row; $i++)
+        echo "$('#img_lang" . $i . " a').tabs();\n";
+}
+?>
+            ]]></add>
+        </operation>
+    </file>
+
+   <!-- <file path="catalog/controller/module/" name="bestseller.php,latest.php,special.php">
+        <operation info="Add CIT settings">
+            <search position="after"><![CDATA[
+            function index($setting)
+            ]]></search>
+            <add><![CDATA[
+            $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+            ]]></add>
+        </operation>
+        <operation info="Add product image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['products'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                    'image_alt'   => isset($result['alt_text']) ? $result['alt_text'] : '',
+                    'image_title' => isset($result['title_text']) ? $result['title_text'] : '',
+            ]]></add>
+        </operation>
+    </file> -->
+
+    <file name="catalog/controller/module/featured.php">
+        <operation info="Add CIT settings">
+            <search position="after"><![CDATA[
+            function index($setting)
+            ]]></search>
+            <add><![CDATA[
+            $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+            ]]></add>
+        </operation>
+        <operation info="Add product image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['products'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                    'image_alt'   => isset($product_info['alt_text']) ? $product_info['alt_text'] : '',
+                    'image_title' => isset($product_info['title_text']) ? $product_info['title_text'] : '',
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/product/category.php">
+        <operation info="Add category image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['button_continue'] = $this->language->get('button_continue');
+            ]]></search>
+            <add><![CDATA[
+            $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+
+            if ($this->config->get('custom_image_titles_status')) {
+                $this->data['image_alt'] = isset($category_info['alt_text']) ? $category_info['alt_text'] : '';
+                $this->data['image_title'] = isset($category_info['title_text']) ? $category_info['title_text'] : '';
+            }
+            ]]></add>
+        </operation>
+        <operation info="Add product image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['products'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                    'image_alt'   => isset($result['alt_text']) ? $result['alt_text'] : '',
+                    'image_title' => isset($result['title_text']) ? $result['title_text'] : '',
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/controller/product/product.php">
+        <operation info="Add CIT settings and main product image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['button_continue'] = $this->language->get('button_continue');
+            ]]></search>
+            <add><![CDATA[
+            $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+            $this->data['cit_display_caption'] = $this->config->get('cit_display_caption');
+
+            if ($this->config->get('custom_image_titles_status')) {
+                $this->data['image_alt'] = isset($product_info['alt_text']) ? $product_info['alt_text'] : '';
+                $this->data['image_title'] = isset($product_info['title_text']) ? $product_info['title_text'] : '';
+            }
+            ]]></add>
+        </operation>
+        <operation info="Add additional product images alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['images'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                    'alt'   => isset($result['alt_text']) ? $result['alt_text'] : "",
+                    'title' => isset($result['title_text']) ? $result['title_text'] : "",
+            ]]></add>
+        </operation>
+    </file>
+
+    <!--<file path="catalog/controller/product/" name="search.php,special.php,manufacturer.php">
+        <operation info="Add CIT settings">
+            <search position="after"><![CDATA[
+            $this->data['button_compare'] = $this->language->get('button_compare');
+            ]]></search>
+            <add><![CDATA[
+            $this->data['cit_status'] = $this->config->get('custom_image_titles_status');
+            ]]></add>
+        </operation>
+        <operation info="Add product image alt &amp; title messages">
+            <search position="after"><![CDATA[
+            $this->data['products'][] = array(
+            ]]></search>
+            <add><![CDATA[
+                    'image_alt'   => isset($result['alt_text']) ? $result['alt_text'] : '',
+                    'image_title' => isset($result['title_text']) ? $result['title_text'] : '',
+            ]]></add>
+        </operation>
+    </file> -->
+
+    <file name="catalog/model/catalog/product.php">
+        <operation info="Include the main product image custom alt &amp; title messages">
+            <search position="before"><![CDATA[
+            'product_id'       => $query->row['product_id']
+            ]]></search>
+            <add><![CDATA[
+                'alt_text'         => isset($query->row['alt_text']) ? $query->row['alt_text'] : "",
+                'title_text'       => isset($query->row['title_text']) ? $query->row['title_text'] : "",
+            ]]></add>
+        </operation>
+        <operation info="Include the additional product images custom alt &amp; title messages">
+            <search position="replace"><![CDATA[
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image WHERE product_id = '" . (int)$product_id . "' ORDER BY sort_order ASC");
+            ]]></search>
+            <add><![CDATA[
+        if ($this->config->get('custom_image_titles_status')) {
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image pi LEFT JOIN " . DB_PREFIX . "product_image_description pid ON (pi.product_image_id = pid.product_image_id AND pid.language_id = '" . (int)$this->config->get('config_language_id') . "') WHERE pi.product_id = '" . (int)$product_id . "' ORDER BY pi.sort_order ASC");
+        } else {
+            $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_image WHERE product_id = '" . (int)$product_id . "' ORDER BY sort_order ASC");
+        }
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/product/category.tpl">
+        <operation info="Add custom alt &amp; title messages to the category image">
+            <search position="replace"><![CDATA[
+           <a href="<?php echo $product['href']; ?>"><img src="<?php echo $product['thumb']; ?>" alt="<?php echo $product['name']; ?>" style="width:<?php echo $this->config->get('config_image_product_width'); ?>px; height:auto;" /></a></div>
+            ]]></search>
+            <add><![CDATA[
+	    <a href="<?php echo $product['href']; ?>"><img src="<?php echo $product['thumb']; ?>" title="<?php echo (isset($cit_status) && $cit_status && $product['image_title'] != '') ? $product['image_title'] : $product['name']; ?>" alt="<?php echo (isset($cit_status) && $cit_status && $product['image_alt'] != '') ? $product['image_alt'] : $product['name']; ?>" style="width:<?php echo $this->config->get('config_image_product_width'); ?>px; height:auto;" /></a></div>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file name="catalog/view/theme/*/template/product/product.tpl">
+        <operation info="Add custom alt &amp; title messages to the main product image">
+            <search position="replace"><![CDATA[
+            <a class="colorbox prettyPhoto" href="<?php echo $popup; ?>" title="<?php echo $heading_title; ?>" id="zoom01" <? if(($this->config->get('beauty_status') == '1') && ($this->config->get('beauty_effects_productimage') == 'zoom')) { echo 'class="cloud-zoom" rel="position:\'right\', adjustX:10, adjustY:0, tint:\'#FFFFFF\', showTitle:false, softFocus:1, smoothMove:5, tintOpacity:0.8"';} else { echo 'rel="prettyPhoto"';} ?>><img src="<?php echo $thumb; ?>" title="<?php echo $heading_title; ?>" alt="<?php echo $heading_title; ?>" id="image" /></a></div>
+            ]]></search>
+            <add><![CDATA[
+			<a class="colorbox prettyPhoto" href="<?php echo $popup; ?>" title="<?php echo (isset($cit_status) && $cit_status && $image_title != '') ? $image_title : $heading_title; ?>" id="zoom01" <? if(($this->config->get('beauty_status') == '1') && ($this->config->get('beauty_effects_productimage') == 'zoom')) { echo 'class="cloud-zoom" rel="position:\'right\', adjustX:10, adjustY:0, tint:\'#FFFFFF\', showTitle:false, softFocus:1, smoothMove:5, tintOpacity:0.8"';} else { echo 'rel="prettyPhoto"';} ?>><img src="<?php echo $thumb; ?>" title="<?php echo (isset($cit_status) && $cit_status && $image_title != '') ? $image_title : $heading_title; ?>" alt="<?php echo (isset($cit_status) && $cit_status && $image_alt != '') ? $image_alt : $heading_title; ?>" id="image" /></a></div>
+            ]]></add>
+        </operation>
+        <operation info="Add custom alt &amp; title messages to the additional product images">
+            <search position="replace"><![CDATA[
+            <a href="<?php echo $image['popup']; ?>" title="<?php echo $heading_title; ?>" class="colorbox prettyPhoto" ><img class="fade-image" src="<?php echo $image['thumb']; ?>" title="<?php echo $heading_title; ?>" alt="<?php echo $heading_title; ?>" /></a>
+            ]]></search>
+            <add><![CDATA[
+			 <a href="<?php echo $image['popup']; ?>" title="<?php echo (isset($cit_status) && $cit_status && $image['title'] != '') ? $image['title'] : $heading_title; ?>" class="colorbox prettyPhoto" ><img class="fade-image" src="<?php echo $image['thumb']; ?>"  title="<?php echo (isset($cit_status) && $cit_status && $image['title'] != '') ? $image['title'] : $heading_title; ?>" alt="<?php echo (isset($cit_status) && $cit_status && $image['alt'] != '') ? $image['alt'] : $heading_title; ?>" /></a>
+			]]></add>
+        </operation>
+    </file>
+
+    <!-- <file path="catalog/view/theme/default/template/product/" name="category.tpl,manufacturer_info.tpl,search.tpl,special.tpl">
+        <operation info="Add custom alt &amp; title messages to the product images">
+            <search position="replace"><![CDATA[
+            <div class="image"><a href="<?php echo $product['href']; ?>"><img src="<?php echo $product['thumb']; ?>" title="<?php echo $product['name']; ?>" alt="<?php echo $product['name']; ?>" /></a></div>
+            ]]></search>
+            <add><![CDATA[
+      <div class="image"><a href="<?php echo $product['href']; ?>" title="<?php echo (isset($cit_status) && $cit_status && $product['image_title'] != '') ? $product['image_title'] : $product['name']; ?>"><img src="<?php echo $product['thumb']; ?>"  title="<?php echo (isset($cit_status) && $cit_status && $product['image_title'] != '') ? $product['image_title'] : $product['name']; ?>" alt="<?php echo (isset($cit_status) && $cit_status && $product['image_alt'] != '') ? $product['image_alt'] : $product['name']; ?>" /></a></div>
+            ]]></add>
+        </operation>
+    </file>
+
+    <file path="catalog/view/theme/default/template/module/" name="bestseller.tpl,featured.tpl,latest.tpl,special.tpl">
+        <operation info="Add custom alt &amp; title messages to the product images">
+            <search position="replace"><![CDATA[
+            <div class="image"><a href="<?php echo $product['href']; ?>"><img src="<?php echo $product['thumb']; ?>" alt="<?php echo $product['name']; ?>" /></a></div>
+            ]]></search>
+            <add><![CDATA[
+      <div class="image"><a href="<?php echo $product['href']; ?>" title="<?php echo (isset($cit_status) && $cit_status && $product['image_title'] != '') ? $product['image_title'] : $product['name']; ?>"><img src="<?php echo $product['thumb']; ?>"  title="<?php echo (isset($cit_status) && $cit_status && $product['image_title'] != '') ? $product['image_title'] : $product['name']; ?>" alt="<?php echo (isset($cit_status) && $cit_status && $product['image_alt'] != '') ? $product['image_alt'] : $product['name']; ?>" /></a></div>
+            ]]></add>
+        </operation>
+    </file> -->
+
+</modification>
+
+<!--
+<modification>  - This is the highest level of the file and there can only be one
+<id>            - This is the name of the mod. Format: Free form text. (Informational)
+<version>       - This is the version of the mod. Format: Number and Decimal (1.0.0) (Informational)
+<author>        - This is the author of the mod. Format: Free form text (Informational)
+<file>          - This is the name of the file to modify. Requires attribute "name" as relative filename (catalog/controller/product/product.php). There can be multiple
+<operation>     - This is the wrapper of the actual operation occuring. There can be multiple operations to the same file.
+<search>        - This is the first required step of the operation. Uses an optional attribute "position" set to before|after|replace. replace is default. One per operation. Use CDATA tags to wrap code.
+<add>           - This is the second required step of the operation. Uses an optional attribute "trim" set to true|false to trim away whitespace and linebreaks. false is default. One per operation. Location of added data depends on the position of the <search> command. Use CDATA tags to wrap code.
+<![CDATA[  ]]>  - These are called CDATA tags and they are used by xml to specify that the data between should not be evaluated.
+-->

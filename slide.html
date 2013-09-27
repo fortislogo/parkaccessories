@@ -1,0 +1,62 @@
+    <html>
+    <head>
+    <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js'></script>
+
+    <style>
+    p.content-one {
+    display:none;
+    }
+    p.content-two {
+    display:none;
+    }
+    </style>
+
+    </head>
+    <body>
+
+    <div class='sitesection' style='border:1px solid black; width:900px; background-color:LightGrey'>
+    <a href='#' class='expand-one'>Expand</a>
+    <SELECT id=”u131″ class=”u131″>
+    <OPTION selected value=”1″>A</OPTION>
+    <OPTION value=”2″>B</OPTION>
+    <OPTION value=”3″>C</OPTION>
+    <OPTION value=”4″>D</OPTION>
+    </SELECT>
+    <p class='content-one'>
+    <img src='http://im.rediff.com/200-300/getahead/2013/jul/18food1.jpg'/>&nbsp;&nbsp;
+    <img src='http://im.rediff.com/200-300/getahead/2013/jul/18food1.jpg'/>
+    </p>
+    </div>
+    
+    <div class='sitesection' style='border:1px solid black; width:900px; background-color:LightGrey'>
+    <a href='#' class='expand-two'>Expand</a>
+    <SELECT id=”u131″ class=”u131″ data-label=”Loan Selector” >
+    <OPTION selected value=”11″>AA</OPTION>
+    <OPTION value=”22″>BB</OPTION>
+    <OPTION value=”33″>CC</OPTION>
+    <OPTION value=”44″>DD</OPTION>
+    </SELECT>
+    <p class='content-two'>
+    <img src='http://im.rediff.com/200-300/getahead/2013/jul/18food1.jpg'/>&nbsp;&nbsp;
+    <img src='http://im.rediff.com/200-300/getahead/2013/jul/18food1.jpg'/>
+    </p>
+    </div>
+    
+    <script type='text/javascript'>
+    $('.expand-one').click(function()
+	{
+		$('.content-one').slideToggle('slow');
+    });
+	
+    $('.expand-two').click(function()
+	{
+	    $('.content-two').slideToggle('slow');
+    });
+	
+    $('.expand-three').click(function()
+  	{
+    	$('.content-three').slideToggle('slow');
+    });
+    </script>
+    </body>
+    </html>

@@ -1,0 +1,9 @@
+You downloaded BeautyShop 2.6.1 version.
+
+After 2.1 theme version all new upgrades will work on OpenCart 1.5.5.1 or later ONLY, because OpenCart developer changed module model in new OpenCart release and all old modules and themes for OpenCart 1.5.4 will not work on 1.5.5 or later.
+
+This theme package contains theme versions for 1.5.4.x (theme version 2.1) and 1.5.5.1 (latest theme version) OpenCart version. Read Documentation before install!
+
+To upgrade your theme to newer version just add new and replaces changed files.
+
+Read list of files changes before upgrading in file "Documentation/release-history.html"!

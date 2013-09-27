@@ -1,0 +1,67 @@
+<!-- Created using vQmod XML Generator by UKSB - http://www.opencart-extensions.co.uk //-->
+<modification>
+	<id><![CDATA[Product Color Option Template Default]]></id>
+	<version><![CDATA[1.2.10]]></version>
+	<vqmver><![CDATA[2.1.6]]></vqmver>
+	<author><![CDATA[Minh Le mike.ltn@gmail.com]]></author>
+	<file name="catalog/view/theme/*/template/product/category.tpl">
+		<operation>
+			<search error="log" position="after"><![CDATA[$product['name'];]]></search>
+			<add><![CDATA[<!--BOF Product Color Option-->
+			<div class="product-color-options">
+			<?php if(sizeof($product['product_color_options']) > 0) { ?>				
+				<?php foreach ($product['product_color_options'] as $pco) { ?>
+					<span title="<?php echo $pco['color_name']; ?>" href="" style="background-color: <?php echo $pco['color_code']; ?>;"></span>
+				<?php } ?>
+			<?php } ?>			
+			</div>
+			<!--EOF Product Color Option-->]]></add>
+		</operation>
+		<operation>
+			<search error="log" position="after"><![CDATA[<div class="name">']]></search>
+			<add><![CDATA[//BOF Product Color Option
+			if($(element).find('.product-color-options').length > 0)
+				html += '<div class="product-color-options">' + $(element).find('.product-color-options').html() + '</div>';
+			//EOF Product Color Option]]></add>
+		</operation>
+	</file>
+	<file name="catalog/view/theme/*/template/product/product.tpl">
+		<operation>
+			<search error="log" position="after" index="1"><![CDATA[foreach ($options as $option)]]></search>
+			<add><![CDATA[<!--BOF Product Color Option-->
+			<?php if ($option['type'] == 'color') { ?>
+			<div rel="<?php echo $option['option_id']; ?>" id="option-<?php echo $option['product_option_id']; ?>" class="option colors">
+			  <label>COLOR</label>
+			  <div class="selected"><div class="color"></div><div class="arrow"></div></div>
+			  <ul>
+			  <?php 
+				foreach ($option['option_value'] as $option_value) { 
+			  ?>
+				<li class="color-option"				
+				id="color-option-<?php echo $option_value['product_option_value_id']; ?>" 
+				option-value="<?php echo $option_value['product_option_value_id']; ?>"
+				option-text-id="option-text-<?php echo $option['product_option_id']; ?>"
+				style="background-color: <?php echo $option_value['color_code']; ?>"
+				title="<?php echo $option_value['name']; ?> <?php if ($option_value['price']) { ?>(<?php echo $option_value['price_prefix']; ?><?php echo $option_value['price']; ?>)<?php } ?>"></li>
+			  <?php } ?>
+			  </ul>
+			  <div class="hidden">
+			  <select name="option[<?php echo $option['product_option_id'];?>]" class="optionChoice">
+				<option value=""><?php echo $text_select; ?></option>
+				<?php foreach ($option['option_value'] as $option_value) { ?>
+				<option value="<?php echo $option_value['product_option_value_id']; ?>"><?php echo $option_value['name']; ?>
+				<?php if ($option_value['price']) { ?>
+				(<?php echo $option_value['price_prefix']; ?><?php echo $option_value['price']; ?>)
+				<?php } ?>
+				</option>
+				<?php } ?>
+			  </select>
+			  </div>
+			</div>
+			<br />
+			
+			<?php } ?>
+			<!--EOF Product Color Option-->]]></add>
+		</operation>
+	</file>
+</modification>

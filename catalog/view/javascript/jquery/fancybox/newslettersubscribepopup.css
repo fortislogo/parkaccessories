@@ -1,0 +1,237 @@
+.newspopup,
+.newspopup h1,
+.newspopup span,
+.newspopup input,
+.newspopup label {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+}
+
+
+/* Form Container */
+.newspopup {
+	position: relative;
+	width: auto;
+	height: auto;
+	padding: 30px 1px;
+	margin-top: 1px;
+	cursor: default;
+}
+
+
+.newspopup p {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	text-align: center;
+    line-height: 16px;
+	font-family:'CopperplateGothicLTW01- 706025';
+	font-size: 15px;
+	font-weight: bold;
+	color: #000000;
+}
+
+.newspopup img {
+    height: auto;
+    text-align: center;
+    width: auto;
+	}
+
+.newspopup .line2
+{
+	font-family:'CopperplateGothicLTW01- 706025';
+	font-size:21px;
+	color:#7b7b7b;
+	letter-spacing:-1px;
+	text-align:center;
+	line-height:30px;
+}
+
+
+
+
+/* ipad */
+@media only screen and (max-device-width : 1920px) {
+	.newspopup img { max-width: 100%; }
+}
+
+/* ipad */
+@media only screen and (max-device-width : 1024px) {
+	.newspopup img { max-width: 100%; }
+}
+
+
+/* other */
+@media only screen and (max-device-width : 767px) {
+	.newspopup img { max-width: 450px; }
+}
+
+
+
+/* iphone */
+@media only screen and (max-device-width : 480px) {
+	.newspopup img { max-width: 300px; }
+}
+
+
+
+/* smallest */
+@media only screen and (max-device-width : 319px) {
+	.newspopup img { max-width: 180px; }
+}
+
+
+
+/* Form Title */
+.newspopup	h1 {
+	
+}
+
+/* Form Input General Styles */
+.newspopup input[type=text],
+.newspopup input[type=password],
+.newspopup input[type=submit] {
+	margin: 5px 0;
+	padding: 6px 15px;
+	border: 0;
+	outline: none;
+	
+	border-radius:0px;	
+	-webkit-border-radius:0px;
+	-moz-border-radius:0px;
+	
+	box-shadow:none;
+	-moz-box-shadow:none;
+	-webkit-box-shadow:none;
+	
+	font-size:21px;
+	border:solid 1px #a2a2a2;
+	font-family:'Trade Gothic W01 Light';
+	
+	display:block;
+}
+
+/* Form User&Pass Input Styles */
+.newspopup input[type=text],
+.newspopup input[type=password],
+.js .newspopup span {
+	
+	width: 90%;
+	margin:10px auto 0px;
+	color:#8b8b8b;
+	z-index:2;
+	position:absolute;
+	background:none;
+}
+
+
+
+
+/* Form Submit Input Styles */
+.newspopup input[type=submit],
+.js .newspopup span.checked:before {
+clear: left;
+float: none;
+width: auto;
+	text-align: center;
+	cursor: pointer;	
+}
+
+
+
+/* Form Green Gradient Styles */
+.newspopup input[type=submit],
+.js .newspopup span.checked:before {
+	color:#fff;
+	background:#8b8b8b;
+	border:solid 1px #8b8b8b;
+	font-size:30px;
+	margin:15px auto;
+	font-family:'CopperplateGothicLTW01- 706025';
+}
+
+/* Form Checkbox Input Styles */
+.js .newspopup input[type=checkbox] {
+	position: fixed;
+	left: -9999px;
+}
+
+
+.js .newspopup span {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+
+	-webkit-border-radius: 2px;
+	-moz-border-radius: 2px;
+	border-radius: 2px;
+}
+
+.js .newspopup span.checked:before {
+	content: '';
+	position: absolute;
+	top: 4px;
+	left: 4px;
+	width: 8px;
+	height: 8px;
+
+	-webkit-box-shadow: 0px 1px 1px 0px rgba(255,255,255, .45), inset 0px 1px 1px 0px rgba(0,0,0, .3);
+	-moz-box-shadow: 0px 1px 1px 0px rgba(255,255,255, .45), inset 0px 1px 1px 0px rgba(0,0,0, .3);
+	box-shadow: 0px 1px 1px 0px rgba(255,255,255, .45), inset 0px 1px 1px 0px rgba(0,0,0, .3);
+}
+
+/* Form Label Styles */
+
+.newspopup span
+{
+	position:relative;
+	display:block;
+	margin:0 auto;
+	width:75%;
+	height:50px;
+}
+
+.newspopup label 
+{
+	position: absolute;
+	top: 15px;
+	left: 15px;
+	font-family:'Trade Gothic W01 Light';
+	font-size: 21px;
+	color:#8b8b8b;
+	z-index:1;
+}
+
+#fancybox-close
+{
+	right:10px !important;
+	top:15px !important;
+	background:none !important;
+	font-size:21px;
+	text-align:center;
+}
+
+a#fancybox-close:hover
+{
+	text-decoration:none;
+}
+
+#fancybox-overlay
+{
+	background:none !important;
+}
+
+#fancybox-bg-n,
+#fancybox-bg-ne,
+#fancybox-bg-e,
+#fancybox-bg-se,
+#fancybox-bg-s,
+#fancybox-bg-sw,
+#fancybox-bg-w,
+#fancybox-bg-nw
+{
+	background:none !important;
+}

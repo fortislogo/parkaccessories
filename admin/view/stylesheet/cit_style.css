@@ -1,0 +1,64 @@
+.micro_form, .nano_form, .pico_form {
+    width: 100%;
+    border-collapse: collapse;
+}
+table.micro_form tr td:first-child, table.nano_form tr td:first-child {
+    width: 110px;
+}
+.nano_form td, .pico_form td {
+    padding: 1px !important;
+    border: 0px;
+}
+.micro_form > * > * > td {
+    padding: 10px;
+    color: #000000;
+    border-bottom: 1px dotted #CCCCCC;
+}
+
+.micro_htabs {
+    padding: 0px 0px 0px 10px;
+    height: 19px;
+    border-bottom: 1px solid #DDDDDD;
+}
+.micro_htabs a {
+    border-top: 1px solid #DDDDDD;
+    border-left: 1px solid #DDDDDD;
+    border-right: 1px solid #DDDDDD;
+    background: #FFFFFF url('../image/tab.png') repeat-x;
+    padding: 1px 5px 1px 5px;
+    float: left;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    color: #000000;
+    margin-right: 2px;
+}
+.micro_htabs a.selected {
+    padding-bottom: 2px;
+    background: #FFFFFF;
+}
+
+td.lang_info {
+    padding-left:20px;
+    width:auto;
+}
+.image_data {
+    width: 100%;
+    border-collapse: collapse;
+}
+table.image_data tr td:first-child {
+    width: 110px;
+}
+.image_data > * > * > td {
+    color: #000000;
+    border-right: 0px;
+    border-bottom: 0px;
+}
+.image_data tbody td {
+    padding: 5px;
+}
+.image_data td {
+    border-right: 0px;
+}

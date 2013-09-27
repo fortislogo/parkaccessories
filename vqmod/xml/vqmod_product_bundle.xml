@@ -1,0 +1,917 @@
+<modification>
+
+	<id>Product Bundle for OpenCart 1.5.5.x</id>
+	<version>1.2.1</version>
+	<vqmver>2.1.6</vqmver>
+	<author>Joakim Ljungh - Shine Webb</author>
+	
+	<file name="admin/controller/setting/setting.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			$this->data['entry_secure'] = $this->language->get('entry_secure');
+			]]></search>
+			<add><![CDATA[
+			$this->data['entry_productbundle_status'] = $this->language->get('entry_productbundle_status');
+			$this->data['text_productbundle_none'] = $this->language->get('text_productbundle_none');
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			if (isset($this->request->post['config_secure'])) {
+			]]></search>
+			<add><![CDATA[
+			if (isset($this->request->post['config_productbundle_status_id'])) {
+				$this->data['config_productbundle_status_id'] = $this->request->post['config_productbundle_status_id']; 
+			} else {
+				$this->data['config_productbundle_status_id'] = $this->config->get('config_productbundle_status_id');
+			}
+			
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/language/english/setting/setting.php">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			// Error
+			]]></search>
+			<add><![CDATA[
+			$_['entry_productbundle_status']           = 'Shipped Status:<br /><span class="help">The stock is updated from product bundles when status is changed to this when edit an order.</span>';
+			$_['text_productbundle_none']              = 'None';
+			]]></add>
+		</operation>
+	</file>
+	
+	
+	
+	<file name="admin/view/template/setting/setting.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<td><?php echo $entry_stock_status; ?></td>
+			]]></search>
+			<add><![CDATA[
+			  <td><?php echo $entry_productbundle_status; ?></td>
+              <td><select name="config_productbundle_status_id">
+				  <option value=""><?php echo $text_productbundle_none; ?></option>
+                  <?php foreach ($order_statuses as $order_status) { ?>
+                  <?php if ($order_status['order_status_id'] == $config_productbundle_status_id) { ?>
+                  <option value="<?php echo $order_status['order_status_id']; ?>" selected="selected"><?php echo $order_status['name']; ?></option>
+                  <?php } else { ?>
+                  <option value="<?php echo $order_status['order_status_id']; ?>"><?php echo $order_status['name']; ?></option>
+                  <?php } ?>
+                  <?php } ?>
+                </select></td>
+            </tr>
+			<tr>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/model/sale/order.php">
+		
+		<operation error="skip">
+			<search position="before" index="1"><![CDATA[
+			$this->db->query("UPDATE `" . DB_PREFIX . "order` SET firstname
+			]]></search>
+			<add><![CDATA[
+			$old_orderstatus = $this->oldOrderstatus($order_id);
+			]]></add>
+		</operation>
+		
+		<operation error="skip">
+			<search position="before" index="1"><![CDATA[
+			public function getTotalOrderHistories($order_id) {
+			]]></search>
+			<add><![CDATA[
+			private function oldOrderstatus($order_id) {
+				$query = $this->db->query("SELECT order_status_id AS status FROM `" . DB_PREFIX . "order` WHERE order_id = '" . (int)$order_id . "' LIMIT 1");
+				return $query->row['status'];
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation error="skip">
+			<search position="before" index="1"><![CDATA[
+			$this->db->query("DELETE FROM " . DB_PREFIX . "order_voucher WHERE order_id = '" . (int)$order_id . "'"); 
+			]]></search>
+			<add><![CDATA[
+			if ($this->db->query("SHOW TABLES FROM `".DB_DATABASE."` LIKE '" . DB_PREFIX . "product_to_product'")) {
+				if ($this->config->get('config_productbundle_status_id') && ($this->config->get('config_productbundle_status_id') == $data['order_status_id']) && ($old_orderstatus != $data['order_status_id'])) {
+					$package_query = $this->db->query("SELECT p2p.related_id, (p2p.quantity * op.quantity) quantity FROM " . DB_PREFIX . "product p, " . DB_PREFIX . "order_product op, " . DB_PREFIX . "product_to_product p2p WHERE p.product_id = op.product_id AND p.product_id = p2p.product_id AND op.order_id = '" . (int)$order_id . "'");
+					foreach ($package_query->rows as $related_product) {
+						$this->db->query("UPDATE " . DB_PREFIX . "product SET quantity = (quantity - " . (int)$related_product['quantity'] . ") WHERE product_id = '" . (int)$related_product['related_id'] . "' AND subtract = '1'");
+					}
+				}
+			}
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="system/library/cart.php">
+		<operation>
+			<search position="replace" index="1"><![CDATA[SELECT * FROM]]></search>
+			<add><![CDATA[SELECT *,(SELECT CASE WHEN p2p.product_id IS NOT NULL THEN MIN(pr2.quantity - p2p.quantity)+1 ELSE p.quantity END FROM " . DB_PREFIX . "product_to_product p2p INNER JOIN " . DB_PREFIX . "product AS pr2 ON p2p.related_id = pr2.product_id WHERE p2p.product_id = p.product_id) As quantity FROM]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			$option_data = array();
+			]]></search>
+			<add><![CDATA[
+			$package_data = array();
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			foreach ($this->session->data['cart'] as $key => $quantity) {
+			]]></search>
+			<add><![CDATA[
+			
+			if ($this->db->query("SHOW TABLES FROM `".DB_DATABASE."` LIKE '" . DB_PREFIX . "product_to_product'")) {
+				$package_exist = true;
+			} else {
+				$package_exist = false;
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			foreach ($options as $product_option_id => $option_value) {
+			]]></search>
+			<add><![CDATA[
+					if ($package_exist) {
+						
+						$package_query = $this->db->query("SELECT p2p.related_id, p2p.quantity, pd.name, p.image FROM " . DB_PREFIX . "product_to_product p2p LEFT JOIN (" . DB_PREFIX . "product p LEFT JOIN " . DB_PREFIX . "product_description pd ON p.product_id = pd.product_id) ON p2p.related_id = p.product_id WHERE p2p.product_id = '" . (int)$product_id . "' AND pd.language_id = '" . (int)$this->config->get('config_language_id') . "'");
+						
+						if ($package_query->num_rows) {
+							foreach ($package_query->rows as $package) { 
+								$package_data[] = array(
+									'product_id' => $package['related_id'],
+									'quantity'   => $package['quantity'],
+									'name'    	 => $package['name'],
+									'image'    	 => $package['image']
+								);
+							}
+						}
+					}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			'option'          => $option_data,
+			]]></search>
+			<add><![CDATA[						'package'        => $package_data,]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/controller/checkout/cart.php">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			$option_data = array();
+			]]></search>
+			<add><![CDATA[
+			$package_data = array();
+			
+			foreach ($product['package'] as $package) {
+				$package_data[] = array(
+					'product_id'  => $package['product_id'],
+					'quantity'    => $package['quantity'],
+					'name'  	  => $package['name'],
+					'href'		  => $this->url->link('product/product', 'product_id=' . $package['product_id'])
+				);
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			'option'   => $option_data,
+			]]></search>
+			<add><![CDATA[
+			'package'  => $package_data,
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/view/theme/*/template/checkout/cart.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<?php foreach ($product['option'] as $option) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php if ($product['package']) { ?>
+			<div class="package">
+			<?php foreach ($product['package'] as $package) { ?>
+			   <small><?php echo $package['quantity']; ?> x <a style="font-size:11px" href="<?php echo $package['href']; ?>"><?php echo $package['name']; ?></a></small><br />
+			<?php } ?>
+			</div>
+			<?php } ?>
+			</div>
+			<div>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/controller/checkout/confirm.php">
+		<operation>
+			<search position="before"><![CDATA[
+			$option_data = array();
+			]]></search>
+			<add><![CDATA[
+			$package_data = array();
+			
+			foreach ($product['package'] as $package) {
+				$package_data[] = array(
+					'product_id'  => $package['product_id'],
+					'quantity'    => $package['quantity'],
+					'name'  	  => $package['name'],
+					'href'		  => $this->url->link('product/product', 'product_id=' . $package['product_id'])
+				);
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after"><![CDATA[
+			'option'     => $option_data,
+			]]></search>
+			<add><![CDATA[						'package'  	 => $package_data,]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/view/theme/*/template/checkout/confirm.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<?php foreach ($product['option'] as $option) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php if ($product['package']) { ?>
+			<div class="package">
+			<?php foreach ($product['package'] as $package) { ?>
+			   <small><?php echo $package['quantity']; ?> x <?php echo $package['name']; ?></small><br />
+			<?php } ?>
+			</div>
+			<?php } ?>
+			</div>
+			<div>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/controller/module/cart.php">
+		<operation error="skip">
+			<search position="before" index="1"><![CDATA[
+			$option_data = array();
+			]]></search>
+			<add><![CDATA[
+			$package_data = array();
+			
+			foreach ($product['package'] as $package) {
+				$package_data[] = array(
+					'product_id'  => $package['product_id'],
+					'quantity'    => $package['quantity'],
+					'name'  	  => $package['name'],
+					'href'		  => $this->url->link('product/product', 'product_id=' . $package['product_id'])
+				);
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			'option'   => $option_data,
+			]]></search>
+			<add><![CDATA[
+			'package'  => $package_data,
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/view/theme/*/template/module/cart.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<?php foreach ($product['option'] as $option) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php if ($product['package']) { ?>
+			<div class="package">
+			<?php foreach ($product['package'] as $package) { ?>
+			   <small><?php echo $package['quantity']; ?> x <a style="font-size:11px" href="<?php echo $package['href']; ?>"><?php echo $package['name']; ?></a></small><br />
+			<?php } ?>
+			</div>
+			<?php } ?>
+			</div>
+			<div>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/model/catalog/product.php">
+		<operation>
+			<search position="replace" index="1"><![CDATA[SELECT DISTINCT *]]></search>
+			<add><![CDATA[SELECT DISTINCT *,(SELECT CASE WHEN p2p.product_id IS NOT NULL THEN MIN(pr2.quantity - p2p.quantity)+1 ELSE p.quantity END FROM " . DB_PREFIX . "product_to_product p2p INNER JOIN " . DB_PREFIX . "product AS pr2 ON p2p.related_id = pr2.product_id WHERE p2p.product_id = p.product_id) As quantity, IFNULL((SELECT 1 FROM " . DB_PREFIX . "product p2 INNER JOIN " . DB_PREFIX . "product_to_product p2p ON p2.product_id = p2p.product_id WHERE p.product_id = p2p.related_id AND p2.product_bundle_hidden = 1 LIMIT 1),0) As product_hidden]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA['subtract'         => $query->row['subtract'],]]></search>
+			<add><![CDATA['product_hidden'    => $query->row['product_hidden'],]]></add>
+		</operation>
+		
+		<operation>
+			<search position="replace"><![CDATA[SELECT p.product_id,]]></search>
+			<add><![CDATA[SELECT p.product_id,(SELECT CASE WHEN p2p.product_id IS NOT NULL THEN MIN(pr2.quantity - p2p.quantity)+1 ELSE p.quantity END FROM " . DB_PREFIX . "product_to_product p2p INNER JOIN " . DB_PREFIX . "product AS pr2 ON p2p.related_id = pr2.product_id WHERE p2p.product_id = p.product_id) As quantity,]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			public function getProductRelated($product_id) {
+			]]></search>
+			<add><![CDATA[
+			public function getProductPackage($product_id) {
+				$product_data = array();
+				
+				if ($this->db->query("SHOW TABLES FROM `".DB_DATABASE."` LIKE '" . DB_PREFIX . "product_to_product'")) {
+					$query = $this->db->query("SELECT pp.related_id, pp.quantity FROM " . DB_PREFIX . "product_to_product pp LEFT JOIN " . DB_PREFIX . "product pr ON (pp.related_id = pr.product_id) LEFT JOIN " . DB_PREFIX . "product_to_store p2s ON (pr.product_id = p2s.product_id) WHERE pp.product_id = '" . (int)$product_id . "' AND pr.status = '1' AND pr.date_available <= NOW() AND p2s.store_id = '" . (int)$this->config->get('config_store_id') . "'");
+					
+					foreach ($query->rows as $result) {
+						$product_data[$result['related_id']] = $this->getProduct($result['related_id']);
+						$product_data[$result['related_id']]['bundle'] = $result['quantity'];
+					}
+				}
+				return $product_data;
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="replace" index="2,3,4,5,6"><![CDATA[AND p.status = '1']]></search>
+			<add><![CDATA[AND p.status = '1' AND (SELECT 1 FROM " . DB_PREFIX . "product p2 INNER JOIN " . DB_PREFIX . "product_to_product p2p ON p2.product_id = p2p.product_id WHERE p.product_id = p2p.related_id AND p2.product_bundle_hidden = 1 LIMIT 1) IS NULL]]></add>
+		</operation>
+		
+		<operation>
+			<search position="replace" index="2,3,4,5,6"><![CDATA[WHERE p.status = '1']]></search>
+			<add><![CDATA[WHERE p.status = '1' AND (SELECT 1 FROM " . DB_PREFIX . "product p2 INNER JOIN " . DB_PREFIX . "product_to_product p2p ON p2.product_id = p2p.product_id WHERE p.product_id = p2p.related_id AND p2.product_bundle_hidden = 1 LIMIT 1) IS NULL]]></add>
+		</operation>
+		
+	</file>
+	
+	<file name="catalog/controller/module/featured.php">
+		<operation>
+			<search position="replace" index="1"><![CDATA[if ($product_info) {]]></search>
+			<add><![CDATA[if ($product_info && (!$product_info['product_hidden'])) {]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/controller/product/product.php">
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			$this->data['tab_description'] = $this->language->get('tab_description');
+			]]></search>
+			<add><![CDATA[
+			$this->data['tab_package'] = $this->language->get('tab_package');
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[$product_info['model']]]></search>
+			<add><![CDATA[			$this->data['hidecart'] = $product_info['product_hidden'];]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			$this->data['products'] = array();
+			]]></search>
+			<add><![CDATA[
+			$this->data['package'] = array();
+			$this->data['package_sum'] = 0;
+			
+			$results = $this->model_catalog_product->getProductPackage($this->request->get['product_id']);
+			
+			foreach ($results as $result) {
+				if ($result['image']) {
+					$image = $this->model_tool_image->resize($result['image'], $this->config->get('config_image_related_width'), $this->config->get('config_image_related_height'));
+				} else {
+					$image = false;
+				}
+				
+				if (($this->config->get('config_customer_price') && $this->customer->isLogged()) || !$this->config->get('config_customer_price')) {
+					$price = $this->currency->format($this->tax->calculate($result['price'], $result['tax_class_id'], $this->config->get('config_tax')));
+				} else {
+					$price = false;
+				}
+						
+				if ((float)$result['special']) {
+					$special = $this->currency->format($this->tax->calculate($result['special'], $result['tax_class_id'], $this->config->get('config_tax')));
+				} else {
+					$special = false;
+				}
+				
+				if ($this->config->get('config_review_status')) {
+					$rating = (int)$result['rating'];
+				} else {
+					$rating = false;
+				}
+				
+				$this->data['package_sum'] += $result['bundle'];
+							
+				$this->data['package'][] = array(
+					'product_id' => $result['product_id'],
+					'thumb'   	 => $image,
+					'name'    	 => $result['name'],
+					'price'   	 => $price,
+					'special' 	 => $special,
+					'rating'     => $rating,
+					'bundle'	 => $result['bundle'],
+					'reviews'    => sprintf($this->language->get('text_reviews'), (int)$result['reviews']),
+					'href'    	 => $this->url->link('product/product', 'product_id=' . $result['product_id']),
+				);
+			}
+			
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/language/english/product/product.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			// Tabs
+			]]></search>
+			<add><![CDATA[
+			$_['tab_package']   = 'Bundle Contains';
+			]]></add>
+		</operation>
+	</file>
+	
+	
+	<file name="catalog/view/theme/*/template/product/product.tpl">
+		<operation>
+			<search position="replace" index="1"><![CDATA[ class="product-list product-page"]]></search>
+			<add><![CDATA[<?php if ($hidecart) { echo 'style="display:none" '; } ?>class="product-list product-page"]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<?php if ($products) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php if ($package) { ?>
+			<div class="package"><?php echo $tab_package; ?> (<?php echo $package_sum; ?>)</div>
+			<?php } ?>
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="2"><![CDATA[
+			<?php if ($products) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php if ($package) { ?>
+			  
+				<div class="box-product bundle-product">
+				  <?php foreach ($package as $product) { ?>
+				  <div>
+					<?php if ($product['thumb']) { ?>
+					<div class="image"><a href="<?php echo $product['href']; ?>"><img src="<?php echo $product['thumb']; ?>" alt="<?php echo $product['name']; ?>" /></a></div>
+					<?php } ?>
+					<div class="bundle-product-name"><a href="<?php echo $product['href']; ?>"><?php echo $product['bundle']; ?>&nbsp;x&nbsp;<?php echo $product['name']; ?></a></div>
+					
+					
+					</div>
+				  <?php } ?>
+				</div>
+			  
+			<?php } ?>
+			
+			]]></add>
+		</operation>
+	</file>
+
+	<file name="catalog/model/checkout/order.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			$this->db->query("UPDATE `" . DB_PREFIX . "order` SET order_status_id = '" . (int)$order_status_id . "', date_modified = NOW() WHERE order_id = '" . (int)$order_id . "'");
+			]]></search>
+			<add><![CDATA[
+			if ($this->db->query("SHOW TABLES FROM `".DB_DATABASE."` LIKE '" . DB_PREFIX . "product_to_product'")) {
+				$package_query = $this->db->query("SELECT p2p.related_id, (p2p.quantity * op.quantity) quantity FROM " . DB_PREFIX . "product p, " . DB_PREFIX . "order_product op, " . DB_PREFIX . "product_to_product p2p WHERE p.product_id = op.product_id AND p.product_id = p2p.product_id AND op.order_id = '" . (int)$order_id . "'");
+				foreach ($package_query->rows as $related_product) {
+					$this->db->query("UPDATE " . DB_PREFIX . "product SET quantity = (quantity - " . (int)$related_product['quantity'] . ") WHERE product_id = '" . (int)$related_product['related_id'] . "' AND subtract = '1'");
+				}
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[public function addOrder($data) {]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`" . DB_PREFIX . "order_bundle` (`order_bundle_id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, `order_id` INT(11) NOT NULL, `product_id` INT(11) NOT NULL, `related_id` INT(11) NOT NULL, `quantity` INT(4) NOT NULL, `name` VARCHAR(255) NOT NULL DEFAULT '', `price` DECIMAL(15,4) DEFAULT 0, `total` DECIMAL(15,4) DEFAULT 0);");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[foreach ($product['option'] as $option) {]]></search>
+			<add><![CDATA[
+			if ($this->customer->isLogged()) {
+				$customer_group_id = $this->customer->getCustomerGroupId();
+			} else {
+				$customer_group_id = $this->config->get('config_customer_group_id');
+			}
+			
+			foreach ($product['package'] as $package) {
+				$query = $this->db->query("SELECT p.price, p.tax_class_id, (SELECT price FROM " . DB_PREFIX . "product_discount pd2 WHERE pd2.product_id = p.product_id AND pd2.customer_group_id = '" . (int)$customer_group_id . "' AND pd2.quantity = '1' AND ((pd2.date_start = '0000-00-00' OR pd2.date_start < NOW()) AND (pd2.date_end = '0000-00-00' OR pd2.date_end > NOW())) ORDER BY pd2.priority ASC, pd2.price ASC LIMIT 1) AS discount FROM " . DB_PREFIX . "product p WHERE p.product_id = '" . (int)$package['product_id'] . "'");
+				if ($query->num_rows) {
+					$query->row['price'] = $this->currency->format($this->tax->calculate($query->row['discount'] ? $query->row['discount'] : $query->row['price'], $query->row['tax_class_id'], $this->config->get('config_tax')),'','',false);
+					$this->db->query("INSERT INTO " . DB_PREFIX . "order_bundle SET order_id = '" . (int)$order_id . "', product_id = '" . (int)$order_product_id . "', related_id = '" . (int)$package['product_id'] . "', quantity = '" . (int)$package['quantity'] . "', name = '" . $this->db->escape($package['name']) . "', price = '" . (float)$query->row['price'] . "', total = '" . (float)$query->row['price'] * (int)$package['quantity'] . "'");
+				}
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[foreach ($order_option_query->rows as $option) {]]></search>
+			<add><![CDATA[
+			$option_package = array();
+			$package_data = array();
+			$order_package_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_bundle WHERE order_id = '" . (int)$order_id . "'");
+			
+			foreach ($order_package_query->rows as $package) {
+				$package_data[] = array(
+					'name'  	=> $package['name'],
+					'quantity'  => $package['quantity']
+				);
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="3"><![CDATA[foreach ($order_option_query->rows as $option) {]]></search>
+			<add><![CDATA[
+			$order_package_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_bundle WHERE order_id = '" . (int)$order_id . "'");
+			
+			foreach ($order_package_query->rows as $package) {
+				$text .= chr(9) . $package['quantity'] . ' x ' . $package['name'] . "\n";
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="4"><![CDATA[foreach ($order_option_query->rows as $option) {]]></search>
+			<add><![CDATA[
+			$order_package_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_bundle WHERE order_id = '" . (int)$order_id . "'");
+			
+			foreach ($order_package_query->rows as $package) {
+				$text .= chr(9) . $package['quantity'] . ' x ' . $package['name'] . "\n";
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA['option'   => $option_data,]]></search>
+			<add><![CDATA[
+			'package'   => $package_data,
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="catalog/view/theme/*/template/mail/order.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<?php foreach ($product['option'] as $option) { ?>
+			]]></search>
+			<add><![CDATA[
+			<?php foreach ($product['package'] as $package) { ?>
+            <br />
+            &nbsp;<small><?php echo $package['quantity']; ?> x <?php echo $package['name']; ?></small>
+            <?php } ?>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/model/catalog/product.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[public function getProducts($data = array()) {]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`".DB_PREFIX."product_to_product` (`product_id` INT(11) NOT NULL , `related_id` INT(11) NOT NULL , `quantity` INT(4) NOT NULL DEFAULT '1', PRIMARY KEY (`product_id`, `related_id`))");
+			$exist = $this->db->query("SHOW COLUMNS FROM `" . DB_PREFIX . "product` WHERE Field = 'product_bundle_hidden'");
+			if (count($exist->row) == 0) {
+				$this->db->query("ALTER TABLE `" . DB_PREFIX . "product` ADD COLUMN `product_bundle_hidden` TINYINT(1) NOT NULL DEFAULT 0 AFTER `viewed`");
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="replace"><![CDATA[sort_order = '" . (int)$data['sort_order'] . "']]></search>
+			<add><![CDATA[ sort_order = '" . (int)$data['sort_order'] . "', product_bundle_hidden = '" . (int)$data['product_bundle_hidden'] . "']]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			public function addProduct($data) {
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`".DB_PREFIX."product_to_product` (`product_id` INT(11) NOT NULL , `related_id` INT(11) NOT NULL , `quantity` INT(4) NOT NULL DEFAULT '1', PRIMARY KEY (`product_id`, `related_id`))");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			public function editProduct($product_id, $data) {
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`".DB_PREFIX."product_to_product` (`product_id` INT(11) NOT NULL , `related_id` INT(11) NOT NULL , `quantity` INT(4) NOT NULL DEFAULT '1', PRIMARY KEY (`product_id`, `related_id`))");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			public function deleteProduct($product_id) {
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`".DB_PREFIX."product_to_product` (`product_id` INT(11) NOT NULL , `related_id` INT(11) NOT NULL , `quantity` INT(4) NOT NULL DEFAULT '1', PRIMARY KEY (`product_id`, `related_id`))");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before"><![CDATA[
+			if (isset($data['product_related'])) {
+			]]></search>
+			<add><![CDATA[
+			if (isset($data['product_package'])) {
+				foreach ($data['product_package'] as $package) {
+					$product_package = explode('|', $package);
+					$this->db->query("DELETE FROM " . DB_PREFIX . "product_to_product WHERE product_id = '" . (int)$product_id . "' AND related_id = '" . (int)$product_package[0] . "'");
+					$this->db->query("INSERT INTO " . DB_PREFIX . "product_to_product SET product_id = '" . (int)$product_id . "', related_id = '" . (int)$product_package[0] . "', quantity = '" . (int)$product_package[1] . "'");
+				}
+			}
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			$this->db->query("DELETE FROM " . DB_PREFIX . "product_related WHERE product_id = '" . (int)$product_id . "'");
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("DELETE FROM " . DB_PREFIX . "product_to_product WHERE product_id = '" . (int)$product_id . "'");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			public function deleteProduct($product_id) {
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("DELETE FROM " . DB_PREFIX . "product_to_product WHERE product_id = '" . (int)$product_id . "'");
+			$this->db->query("DELETE FROM " . DB_PREFIX . "product_to_product WHERE related_id = '" . (int)$product_id . "'");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			public function getProductRelated($product_id) {
+			]]></search>
+			<add><![CDATA[
+			public function getProductPackage($product_id) {
+				$product_package_data = array();
+				
+				if ($this->db->query("SHOW TABLES FROM `".DB_DATABASE."` LIKE '" . DB_PREFIX . "product_to_product'")) {
+					$query = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_to_product WHERE product_id = '" . (int)$product_id . "'");
+				
+					foreach ($query->rows as $result) {
+						$product_package_data[] = array('product_id' => $result['related_id'], 'quantity' => $result['quantity']);
+					}
+				}
+				
+				return $product_package_data;
+			}
+			
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/language/english/catalog/product.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			// Heading
+			]]></search>
+			<add><![CDATA[
+			$_['entry_package']          = 'Bundle:<br /><span class="help">(Autocomplete)</span>';
+			$_['entry_package_hidden']   = 'Hide products in this bundle:<br /><span class="help">Dont show as separate products.</span>';
+			]]></add>
+		</operation>
+	</file>
+	
+	
+	
+	<file name="admin/model/sale/order.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[public function deleteOrder($order_id) {]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`" . DB_PREFIX . "order_bundle` (`order_bundle_id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, `order_id` INT(11) NOT NULL, `product_id` INT(11) NOT NULL, `related_id` INT(11) NOT NULL, `quantity` INT(4) NOT NULL, `name` VARCHAR(255) NOT NULL DEFAULT '', `price` DECIMAL(15,4) DEFAULT 0, `total` DECIMAL(15,4) DEFAULT 0);");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="2"><![CDATA[$this->db->query("DELETE FROM " . DB_PREFIX . "order_option WHERE order_id = '" . (int)$order_id . "'");]]></search>
+			<add><![CDATA[		$this->db->query("DELETE FROM " . DB_PREFIX . "order_bundle WHERE order_id = '" . (int)$order_id . "'");]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/controller/sale/order.php">
+		<operation>
+			<search position="before" index="1"><![CDATA[foreach ($options as $option) {]]></search>
+			<add><![CDATA[
+			$package_data = array();
+			
+			$order_package_query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_bundle WHERE order_id = '" . (int)$order_id . "'");
+			
+			foreach ($order_package_query->rows as $package) {
+				$package_data[] = array(
+					'name'  	=> $package['name'],
+					'quantity'  => $package['quantity']
+				);
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA['option'   		   => $option_data,]]></search>
+			<add><![CDATA[
+			'package'   		   => $package_data,
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/view/template/sale/order_info.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[<?php foreach ($product['option'] as $option) { ?>]]></search>
+			<add><![CDATA[
+			<?php foreach ($product['package'] as $package) { ?>
+            <br />
+            &nbsp;<small><?php echo $package['quantity']; ?> x <?php echo $package['name']; ?></small>
+            <?php } ?>
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/controller/catalog/product.php">
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			public function index() {
+			]]></search>
+			<add><![CDATA[
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`".DB_PREFIX."product_to_product` (`product_id` INT(11) NOT NULL , `related_id` INT(11) NOT NULL , `quantity` INT(4) NOT NULL DEFAULT '1', PRIMARY KEY (`product_id`, `related_id`))");
+			$this->db->query("CREATE TABLE IF NOT EXISTS `".DB_DATABASE."`.`" . DB_PREFIX . "order_bundle` (`order_bundle_id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, `order_id` INT(11) NOT NULL, `product_id` INT(11) NOT NULL, `related_id` INT(11) NOT NULL, `quantity` INT(4) NOT NULL, `name` VARCHAR(255) NOT NULL DEFAULT '', `price` DECIMAL(15,4) DEFAULT 0, `total` DECIMAL(15,4) DEFAULT 0);");
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="after" index="1"><![CDATA[
+			$this->data['entry_related'] = $this->language->get('entry_related');
+			]]></search>
+			<add><![CDATA[
+			$this->data['entry_package'] = $this->language->get('entry_package');
+			$this->data['entry_package_hidden'] = $this->language->get('entry_package_hidden');
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			if (isset($this->request->post['keyword'])) {
+			]]></search>
+			<add><![CDATA[
+			if (isset($this->request->post['product_bundle_hidden'])) {
+				$this->data['product_bundle_hidden'] = $this->request->post['product_bundle_hidden'];
+			} elseif (!empty($product_info)) {
+				$this->data['product_bundle_hidden'] = $product_info['product_bundle_hidden'];
+			} else {
+				$this->data['product_bundle_hidden'] = 0;
+			}
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			if (isset($this->request->post['product_related'])) {
+			]]></search>
+			<add><![CDATA[
+			if (isset($this->request->post['product_package'])) {
+				$products = $this->request->post['product_package'];
+			} elseif (isset($this->request->get['product_id'])) {		
+				$products = $this->model_catalog_product->getProductPackage($this->request->get['product_id']);
+			} else {
+				$products = array();
+			}
+			
+			$this->data['product_package'] = array();
+			
+			foreach ($products as $package) {
+				$package_info = $this->model_catalog_product->getProduct($package['product_id']);
+				
+				if ($package_info) {
+					$this->data['product_package'][] = array(
+						'product_id' => $package_info['product_id'],
+						'quantity'	 => $package['quantity'],
+						'name'       => $package_info['name']
+					);
+				}
+			}
+			
+			]]></add>
+		</operation>
+	</file>
+	
+	<file name="admin/view/template/catalog/product_form.tpl">
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			$('input[name=\'related\']').autocomplete({
+			]]></search>
+			<add><![CDATA[
+			$('input[name=\'package\']').autocomplete({
+				delay: 0,
+				source: function(request, response) {
+					$.ajax({
+						url: 'index.php?route=catalog/product/autocomplete&token=<?php echo $token; ?>&filter_name=' +  encodeURIComponent(request.term),
+						dataType: 'json',
+						success: function(json) {		
+							response($.map(json, function(item) {
+								return {
+									label: item.name,
+									value: item.product_id
+								}
+							}));
+						}
+					});
+				}, 
+				select: function(event, ui) {
+					var quantity = $('#package_quantity').val();
+					if(isNaN(quantity) || quantity < 1) { quantity = 1; }
+					$('#package_quantity').val('1');
+					$('#product-package' + ui.item.value).remove();
+					$('#product-package').append('<div id="product-package' + ui.item.value + '">' + quantity + ' x ' + ui.item.label + '<img src="view/image/delete.png" /><input type="hidden" name="product_package[]" value="' + ui.item.value + '|' + quantity + '" /></div>');
+					$('#product-package div:odd').attr('class', 'odd');
+					$('#product-package div:even').attr('class', 'even');	
+					return false;
+				}
+			});
+			
+			$('#product-package div img').live('click', function() {
+				$(this).parent().remove();
+				$('#product-package div:odd').attr('class', 'odd');
+				$('#product-package div:even').attr('class', 'even');	
+			});
+			
+			]]></add>
+		</operation>
+		
+		<operation>
+			<search position="before" index="1"><![CDATA[
+			<td><?php echo $entry_related; ?></td>
+			]]></search>
+			<add><![CDATA[
+			<tr>
+              <td><?php echo $entry_package_hidden; ?></td>
+              <td><?php if ($product_bundle_hidden) { ?>
+                <input type="radio" name="product_bundle_hidden" value="1" checked="checked" />
+                <?php echo $text_yes; ?>
+                <input type="radio" name="product_bundle_hidden" value="0" />
+                <?php echo $text_no; ?>
+                <?php } else { ?>
+                <input type="radio" name="product_bundle_hidden" value="1" />
+                <?php echo $text_yes; ?>
+                <input type="radio" name="product_bundle_hidden" value="0" checked="checked" />
+                <?php echo $text_no; ?>
+                <?php } ?></td>
+            </tr>
+			<td><?php echo $entry_package; ?></td>
+              <td><input type="text" size="2" maxlength="4" id="package_quantity" name="package_quantity" value="1" /> <input type="text" name="package" value="" /></td>
+            </tr>
+            <tr>
+              <td>&nbsp;</td>
+              <td><div id="product-package" class="scrollbox">
+                  <?php $class = 'odd'; ?>
+                  <?php foreach ($product_package as $product_package) { ?>
+                  <?php $class = ($class == 'even' ? 'odd' : 'even'); ?>
+                  <div id="product-related<?php echo $product_package['product_id']; ?>" class="<?php echo $class; ?>"> <?php echo $product_package['quantity'].' x '.$product_package['name']; ?><img src="view/image/delete.png" />
+                    <input type="hidden" name="product_package[]" value="<?php echo $product_package['product_id'].'|'.$product_package['quantity'] ?>" />
+                  </div>
+                  <?php } ?>
+                </div></td>
+            </tr>
+			<tr>
+			]]></add>
+		</operation>
+	</file>
+	
+</modification>
